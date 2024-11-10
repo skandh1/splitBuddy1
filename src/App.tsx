@@ -40,7 +40,6 @@ function App() {
     <Router>
       <AuthProvider>
         <AppRoutes />
-        afdas
         <Toaster position="top-right" />
       </AuthProvider>
     </Router>
