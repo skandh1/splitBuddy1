@@ -46,9 +46,10 @@ export default function ImageUpload({
       // Upload to ImgBB
       const response = await axios.post('https://api.imgbb.com/1/upload', formData, {
         params: {
-          key: process.env.IMAGE_KEY // Replace with your ImgBB API key
+          key: process.env.IMAGE_KEY || "5b0f6d2a0b932aba4a807a7dabf8f144" // Replace with your ImgBB API key
         }
       });
+      console.log(process.env.IMAGE_KEY)    
 
       if (response.data.success) {
         const imageUrl = response.data.data.url;
