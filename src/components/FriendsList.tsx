@@ -5,10 +5,6 @@ import { doc, onSnapshot, collection, query, where, getDocs } from 'firebase/fir
 import { User, QrCode } from 'lucide-react';
 import QRModal from './QRModal';
 
-interface UserData {
-  friends: string[];
-}
-
 interface FriendData {
   username: string;
   uid: string;
@@ -24,26 +20,27 @@ export default function FriendsList() {
     if (!currentUser) return;
 
     const unsubscribe = onSnapshot(doc(db, 'users', currentUser.uid), async (docSnapshot) => {
-      const userData = docSnapshot.data() as UserData;
-      const friendUsernames = userData?.friends || [];
+      const userData = docSnapshot.data();
+      const friendIds = userData?.friends || [];
       
-      // Fetch user details for each friend
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('username', 'in', friendUsernames));
-      const querySnapshot = await getDocs(q);
-      
-      const friendsData: FriendData[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.createdAt) { // Only add friends who have logged in recently
+      if (friendIds.length > 0) {
+        // Get all friend documents in a single query
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('__name__', 'in', friendIds));
+        const querySnapshot = await getDocs(q);
+        
+        const friendsData: FriendData[] = [];
+        querySnapshot.forEach((doc) => {
           friendsData.push({
-            username: data.username,
+            username: doc.data().username,
             uid: doc.id
           });
-        }
-      });
-      
-      setFriends(friendsData);
+        });
+        
+        setFriends(friendsData);
+      } else {
+        setFriends([]);
+      }
     });
 
     return () => unsubscribe();

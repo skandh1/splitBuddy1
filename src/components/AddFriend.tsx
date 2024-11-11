@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDocs, collection, query, where } from 'firebase/firestore';
 import { UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -12,23 +12,40 @@ export default function AddFriend() {
 
   const handleAddFriend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) return;
+    if (!username.trim() || !currentUser) return;
 
     setLoading(true);
     try {
-      // Query for user with matching username
-      const usersRef = doc(db, 'users', currentUser!.uid);
-      const userDoc = await getDoc(usersRef);
+      // Find user with matching username
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('username', '==', username));
+      const querySnapshot = await getDocs(q);
       
-      if (userDoc.exists() && userDoc.data().username !== username) {
-        await updateDoc(usersRef, {
-          friends: arrayUnion(username)
-        });
-        toast.success(`Added ${username} as friend`);
-        setUsername('');
-      } else {
-        toast.error('User not found or cannot add yourself');
+      if (querySnapshot.empty) {
+        toast.error('User not found');
+        return;
       }
+
+      const friendDoc = querySnapshot.docs[0];
+      if (friendDoc.id === currentUser.uid) {
+        toast.error('You cannot add yourself as a friend');
+        return;
+      }
+
+      // Add friend to current user's friends list
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        friends: arrayUnion(friendDoc.id)
+      });
+
+      // Add current user to friend's friends list
+      const friendRef = doc(db, 'users', friendDoc.id);
+      await updateDoc(friendRef, {
+        friends: arrayUnion(currentUser.uid)
+      });
+
+      toast.success(`Added ${username} as friend`);
+      setUsername('');
     } catch (error) {
       toast.error('Failed to add friend');
     } finally {

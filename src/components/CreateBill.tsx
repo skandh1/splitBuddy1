@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
-import { Receipt, Plus, Minus, QrCode } from 'lucide-react';
+import { collection, addDoc, doc, onSnapshot, query, where } from 'firebase/firestore';
+import { Receipt, QrCode, Check, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ImageUpload from './ImageUpload';
 
@@ -21,35 +21,43 @@ export default function CreateBill() {
   const [qrImage, setQrImage] = useState('');
 
   useEffect(() => {
-    const fetchFriends = async () => {
-      if (!currentUser) return;
-      
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      const userData = userDoc.data();
-      if (userData?.friends) {
-        const usersRef = collection(db, 'users');
-        const friendsData: Friend[] = [];
-        
-        for (const username of userData.friends) {
-          const friendQuery = await getDoc(doc(usersRef, username));
-          if (friendQuery.exists()) {
-            friendsData.push({
-              username: friendQuery.data().username,
-              uid: friendQuery.id
-            });
-          }
-        }
-        setFriends(friendsData);
-      }
-    };
+    if (!currentUser) return;
 
-    fetchFriends();
+    // Use real-time listener for friends
+    const userRef = doc(db, 'users', currentUser.uid);
+    const unsubscribe = onSnapshot(userRef, async (docSnapshot) => {
+      const userData = docSnapshot.data();
+      const friendIds = userData?.friends || [];
+      
+      if (friendIds.length > 0) {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('__name__', 'in', friendIds));
+        
+        // Set up a real-time listener for friends' data
+        const friendsUnsubscribe = onSnapshot(q, (snapshot) => {
+          const friendsData: Friend[] = [];
+          snapshot.forEach((doc) => {
+            friendsData.push({
+              username: doc.data().username,
+              uid: doc.id
+            });
+          });
+          setFriends(friendsData);
+        });
+
+        return () => friendsUnsubscribe();
+      } else {
+        setFriends([]);
+      }
+    });
+
+    return () => unsubscribe();
   }, [currentUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !totalAmount || selectedFriends.length === 0) {
-      toast.error('Please fill in all fields');
+      toast.error('Please fill in all fields and select at least one friend');
       return;
     }
 
@@ -155,35 +163,45 @@ export default function CreateBill() {
             currentImage={qrImage}
             onRemove={() => setQrImage('')}
             acceptedFileTypes={['image/png', 'image/jpeg', 'image/jpg']}
-            maxFileSize={5 * 1024 * 1024} // 5MB
+            maxFileSize={5 * 1024 * 1024}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Split with
           </label>
-          <div className="space-y-2">
-            {friends.map((friend) => (
-              <button
-                key={friend.uid}
-                type="button"
-                onClick={() => toggleFriend(friend)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors ${
-                  selectedFriends.some(f => f.uid === friend.uid)
-                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                    : 'bg-gray-50 text-gray-700 border-gray-200'
-                } border`}
-                disabled={loading}
-              >
-                <span>{friend.username}</span>
-                {selectedFriends.some(f => f.uid === friend.uid) ? (
-                  <Minus size={16} />
-                ) : (
-                  <Plus size={16} />
-                )}
-              </button>
-            ))}
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {friends.length === 0 ? (
+              <p className="text-sm text-gray-500 p-2 bg-gray-50 rounded-md">No friends added yet</p>
+            ) : (
+              friends.map((friend) => (
+                <button
+                  key={friend.uid}
+                  type="button"
+                  onClick={() => toggleFriend(friend)}
+                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md transition-colors ${
+                    selectedFriends.some(f => f.uid === friend.uid)
+                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
+                  } border`}
+                  disabled={loading}
+                >
+                  <div className="flex items-center gap-2">
+                    <User size={16} />
+                    <span>{friend.username}</span>
+                  </div>
+                  {selectedFriends.some(f => f.uid === friend.uid) && (
+                    <Check size={16} />
+                  )}
+                </button>
+              ))
+            )}
           </div>
+          {selectedFriends.length > 0 && (
+            <p className="text-sm text-blue-600 mt-2">
+              Selected: {selectedFriends.map(f => f.username).join(', ')}
+            </p>
+          )}
         </div>
         <button
           type="submit"
