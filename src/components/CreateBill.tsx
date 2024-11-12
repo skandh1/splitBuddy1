@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, addDoc, doc, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, addDoc, doc, onSnapshot } from 'firebase/firestore';
 import { Receipt, QrCode, Check, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ImageUpload from './ImageUpload';
@@ -23,32 +23,39 @@ export default function CreateBill() {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Use real-time listener for friends
-    const userRef = doc(db, 'users', currentUser.uid);
-    const unsubscribe = onSnapshot(userRef, async (docSnapshot) => {
+    // Listen to changes in the current user's document
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    const unsubscribe = onSnapshot(userDocRef, async (docSnapshot) => {
+      if (!docSnapshot.exists()) return;
+
       const userData = docSnapshot.data();
       const friendIds = userData?.friends || [];
-      
-      if (friendIds.length > 0) {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('__name__', 'in', friendIds));
-        
-        // Set up a real-time listener for friends' data
-        const friendsUnsubscribe = onSnapshot(q, (snapshot) => {
+
+      // Listen to all friend documents in real-time
+      const friendsUnsubscribe = onSnapshot(
+        collection(db, 'users'),
+        (snapshot) => {
           const friendsData: Friend[] = [];
           snapshot.forEach((doc) => {
-            friendsData.push({
-              username: doc.data().username,
-              uid: doc.id
-            });
+            if (friendIds.includes(doc.id)) {
+              friendsData.push({
+                username: doc.data().username,
+                uid: doc.id
+              });
+            }
           });
           setFriends(friendsData);
-        });
+          
+          // Update selected friends to remove any that are no longer in friends list
+          setSelectedFriends(prev => 
+            prev.filter(selected => 
+              friendsData.some(friend => friend.uid === selected.uid)
+            )
+          );
+        }
+      );
 
-        return () => friendsUnsubscribe();
-      } else {
-        setFriends([]);
-      }
+      return () => friendsUnsubscribe();
     });
 
     return () => unsubscribe();
