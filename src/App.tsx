@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import AuthForm from './components/AuthForm';
 import Dashboard from './components/Dashboard';
+import About from './components/About';
 import { useAuth } from './contexts/AuthContext';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -31,11 +32,12 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<PublicRoute><AuthForm /></PublicRoute>} />
       <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+      <Route path="/about" element={<About />} />
     </Routes>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <Router>
       <AuthProvider>
@@ -45,5 +47,3 @@ function App() {
     </Router>
   );
 }
-
-export default App;
