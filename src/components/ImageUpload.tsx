@@ -13,64 +13,75 @@ interface ImageUploadProps {
   maxFileSize?: number;
 }
 
-export default function ImageUpload({ 
-  onImageUploaded, 
-  currentImage, 
+export default function ImageUpload({
+  onImageUploaded,
+  currentImage,
   onRemove,
   acceptedFileTypes = ['image/png', 'image/jpeg', 'image/jpg'],
-  maxFileSize = 5 * 1024 * 1024 // 5MB default
+  maxFileSize = 5 * 1024 * 1024, // 5MB default
 }: ImageUploadProps) {
   const [uploading, setUploading] = React.useState(false);
   const { currentUser } = useAuth();
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file || !currentUser) return;
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (!file || !currentUser) return;
 
-    if (file.size > maxFileSize) {
-      toast.error(`File size should be less than ${maxFileSize / (1024 * 1024)}MB`);
-      return;
-    }
-
-    if (!acceptedFileTypes.includes(file.type)) {
-      toast.error('Please upload a valid QR code image (PNG, JPG, or JPEG)');
-      return;
-    }
-
-    setUploading(true);
-    try {
-      // Create form data
-      const formData = new FormData();
-      formData.append('image', file);
-      
-      // Upload to ImgBB
-      const response = await axios.post('https://api.imgbb.com/1/upload', formData, {
-        params: {
-          key: "5b0f6d2a0b932aba4a807a7dabf8f144" // Replace with your ImgBB API key
-        }
-      });
-        
-
-      if (response.data.success) {
-        const imageUrl = response.data.data.url;
-        onImageUploaded(imageUrl);
-        toast.success('QR code uploaded successfully');
-      } else {
-        throw new Error('Failed to upload image');
+      if (file.size > maxFileSize) {
+        toast.error(
+          `File size should be less than ${maxFileSize / (1024 * 1024)}MB`
+        );
+        return;
       }
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload QR code. Please try again.');
-    } finally {
-      setUploading(false);
-    }
-  }, [currentUser, onImageUploaded, maxFileSize, acceptedFileTypes]);
+
+      if (!acceptedFileTypes.includes(file.type)) {
+        toast.error('Please upload a valid QR code image (PNG, JPG, or JPEG)');
+        return;
+      }
+
+      setUploading(true);
+      try {
+        // Create form data
+        const formData = new FormData();
+        formData.append('image', file);
+
+        // Upload to ImgBB
+        const response = await axios.post(
+          'https://api.imgbb.com/1/upload',
+          formData,
+          {
+            params: {
+              key: '5b0f6d2a0b932aba4a807a7dabf8f144', // Replace with your ImgBB API key
+            },
+          }
+        );
+
+        if (response.data.success) {
+          const imageUrl = response.data.data.url;
+          onImageUploaded(imageUrl);
+          toast.success('QR code uploaded successfully');
+        } else {
+          throw new Error('Failed to upload image');
+        }
+      } catch (error: any) {
+        console.error('Upload error:', error);
+        toast.error('Failed to upload QR code. Please try again.');
+      } finally {
+        setUploading(false);
+      }
+    },
+    [currentUser, onImageUploaded, maxFileSize, acceptedFileTypes]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: acceptedFileTypes.reduce((acc, type) => ({ ...acc, [type]: [] }), {}),
+    accept: acceptedFileTypes.reduce(
+      (acc, type) => ({ ...acc, [type]: [] }),
+      {}
+    ),
     maxFiles: 1,
-    multiple: false
+    multiple: false,
   });
 
   if (currentImage) {
@@ -97,7 +108,11 @@ export default function ImageUpload({
     <div
       {...getRootProps()}
       className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-        ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-500'}`}
+        ${
+          isDragActive
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-300 hover:border-blue-500'
+        }`}
     >
       <input {...getInputProps()} />
       {uploading ? (
