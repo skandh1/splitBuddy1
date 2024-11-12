@@ -14,7 +14,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return <div>Loading...</div>;
   }
   
-  return currentUser ? <>{children}</> : <Navigate to="/" />;
+  return currentUser ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -24,7 +24,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     return <div>Loading...</div>;
   }
   
-  return !currentUser ? <>{children}</> : <Navigate to="/dashboard" />;
+  return !currentUser ? <>{children}</> : <Navigate to="/dashboard" replace />;
 }
 
 function AppRoutes() {
@@ -33,6 +33,7 @@ function AppRoutes() {
       <Route path="/" element={<PublicRoute><AuthForm /></PublicRoute>} />
       <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/about" element={<About />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
