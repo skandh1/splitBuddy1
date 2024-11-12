@@ -7,7 +7,7 @@ export default function About() {
     const teamMembers = [
         "Skandh Jadon",
         "Rajveer Chaudhary",
-        "Pradhyuman Ginghre",
+        "Pradhyumn Singh",
         "Aayush Patidar"
     ];
 
