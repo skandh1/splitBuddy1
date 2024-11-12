@@ -39,7 +39,7 @@ function PaymentModal({ isOpen, onClose, qrUrl, amount, paidByUsername }: Paymen
         <div className="text-center mb-4">
           <h3 className="text-lg font-semibold">Pay {paidByUsername}</h3>
           <p className="text-2xl font-bold text-blue-600 mt-2">
-            ${amount.toFixed(2)}
+            ₹{amount.toFixed(2)}
           </p>
         </div>
         <div className="flex justify-center mb-4">
@@ -130,10 +130,10 @@ export default function BillsList() {
             </div>
             <div className="text-right">
               <p className="text-lg font-semibold">
-                ${bill.splitAmount.toFixed(2)}
+                ₹{bill.splitAmount.toFixed(2)}
               </p>
               <p className="text-sm text-gray-600">
-                Your share of ${bill.totalAmount.toFixed(2)}
+                Your share of ₹{bill.totalAmount.toFixed(2)}
               </p>
             </div>
           </div>

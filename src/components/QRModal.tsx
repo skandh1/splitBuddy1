@@ -47,7 +47,7 @@ export default function QRModal({ isOpen, onClose, friend, amount, billId }: QRM
         <div className="text-center mt-4 space-y-2">
           {amount && (
             <p className="font-semibold text-lg">
-              Amount: ${amount.toFixed(2)}
+              Amount: ₹{amount.toFixed(2)}
             </p>
           )}
           <p className="text-sm text-gray-600">
